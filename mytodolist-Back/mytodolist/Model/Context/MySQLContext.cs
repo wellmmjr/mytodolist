@@ -11,6 +11,5 @@ namespace mytodolist.Model.Context
         public DbSet<ListaTarefa> Listas { get; set; }
 
         public DbSet<Tarefa> Tarefas { get; set; }
-        public DbSet<User> User { get; set; }
     }
 }

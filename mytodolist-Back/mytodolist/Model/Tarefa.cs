@@ -3,16 +3,19 @@ using mytodolist.Model.Base;
 
 namespace mytodolist.Model
 {
-    [Table("taskList")]
-    public class ListaTarefa : BaseEntity
+    [Table("task")]
+    public class Tarefa : BaseEntity
     {
         [Column("titulo")]
-        public string Titulo { get; set; }
+        public string Descricao { get; set; }
 
         [Column("data_criacao")]
         public string Criacao { get; set; }
 
         [Column("enabled")]
         public bool Enabled { get; set; }
+
+        [Column("concluded")]
+        public bool Concluded { get; set; }
     }
 }
