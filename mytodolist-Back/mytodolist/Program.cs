@@ -3,37 +3,117 @@ using Microsoft.EntityFrameworkCore;
 using mytodolist.Business.Implementation;
 using mytodolist.Business;
 using MySqlConnector;
-using Serilog;
-using EvolveDb;
-using mytodolist.Repository.Generic;
-using mytodolist.Repository;
 using Microsoft.Net.Http.Headers;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using mytodolist.Configuration;
+using mytodolist.Hypermedia.Enricher;
+using mytodolist.Hypermedia.Filters;
+using mytodolist.Repository.ListaTarefas;
+using mytodolist.Services;
+using mytodolist.Services.Implementations;
+using mytodolist.Business.Implementations;
+using mytodolist.Repository.User;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Serilog;
+using EvolveDb;
 
 var builder = WebApplication.CreateBuilder(args);
+var appName = "mytodolist";
+var appVersion = "v1";
+var appDescription = $"WEB API com DotNet Core 6 - teste Dev MTP '{appName}'";
 
-// Add services to the container.
+builder.Services.AddRouting(options => options.LowercaseUrls = true);
+var tokenConfigurations = new TokenConfiguration();
+
+new ConfigureFromConfigurationOptions<TokenConfiguration>(
+        builder.Configuration.GetSection("TokenConfigurations")
+    )
+    .Configure(tokenConfigurations);
+
+builder.Services.AddSingleton(tokenConfigurations);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = tokenConfigurations.Issuer,
+        ValidAudience = tokenConfigurations.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenConfigurations.Secret))
+    };
+});
+
+builder.Services.AddAuthorization(auth =>
+{
+    auth.AddPolicy("Bearer", new AuthorizationPolicyBuilder()
+        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser().Build());
+});
+
+builder.Services.AddCors(options => options.AddDefaultPolicy(builder =>
+{
+    builder.AllowAnyOrigin()
+    .AllowAnyMethod()
+    .AllowAnyHeader();
+}));
 
 builder.Services.AddControllers();
 
-var app = builder.Build();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c => {
+    c.SwaggerDoc(appVersion,
+        new OpenApiInfo
+        {
+            Title = appName,
+            Version = appVersion,
+            Description = appDescription,
+            Contact = new OpenApiContact
+            {
+                Name = "Wellington Mendes",
+                Url = new Uri("https://github.com/wellmmjr")
+            }
+        });
+});
 
-var appName = "mytodolist for MTP TEST";
-var appVersion = "v1";
-var appDescription = $"{appName} WEB API with dotnet core developed by Wellington ";
+var connection = builder.Configuration["MySQLConnection:MySQLConnectionString"];
+builder.Services.AddDbContext<MySQLContext>(options => options.UseMySql(
+    connection,
+    new MySqlServerVersion(new Version(8, 0, 29)))
+);
 
-// Configure the HTTP request pipeline.
+if (builder.Environment.IsDevelopment())
+{
+    MigrateDatabase(connection);
+}
 
-app.UseHttpsRedirection();
+builder.Services.AddMvc(options =>
+{
+    options.RespectBrowserAcceptHeader = true;
 
-app.UseAuthorization();
+    options.FormatterMappings.SetMediaTypeMappingForFormat("xml", MediaTypeHeaderValue.Parse("application/xml"));
+    options.FormatterMappings.SetMediaTypeMappingForFormat("json", MediaTypeHeaderValue.Parse("application/json"));
+})
+.AddXmlSerializerFormatters();
 
-app.MapControllers();
+var filterOptions = new HyperMediaFilterOptions();
+filterOptions.ContentResponseEnricherList.Add(new TarefaEnricher());
+filterOptions.ContentResponseEnricherList.Add(new ListaTarefaEnricher());
+
+builder.Services.AddSingleton(filterOptions);
 
 //Versioning API
 builder.Services.AddApiVersioning();
@@ -43,9 +123,12 @@ builder.Services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 builder.Services.AddScoped<IListaTarefaBusiness, ListaTarefaBusinessImplementation>();
 builder.Services.AddScoped<ITarefaBusiness, TarefaBusinessImplementation>();
-builder.Services.AddScoped<IListaTarefaRepository, ListaTarefaRepository>();
+builder.Services.AddScoped<ILoginBusiness, LoginBusinessImplementation>();
 
-builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
+builder.Services.AddTransient<ITokenService, TokenService>();
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IListaTarefaRepository, ListaTarefaRepository>();
 
 var app = builder.Build();
 
@@ -62,6 +145,8 @@ app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", $"{appName
 var option = new RewriteOptions();
 option.AddRedirect("^$", "swagger");
 app.UseRewriter(option);
+
+app.UseAuthorization();
 
 app.MapControllers();
 app.MapControllerRoute("DefaultApi", "{controller=values}/v{version=apiVersion}/{id?}");

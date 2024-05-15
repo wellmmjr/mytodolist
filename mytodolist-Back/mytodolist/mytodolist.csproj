@@ -7,10 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Repository\Tarefas\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="6.0.3" />
   </ItemGroup>
 

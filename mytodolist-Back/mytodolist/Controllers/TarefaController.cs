@@ -1,17 +1,20 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using mytodolist.Business;
 using mytodolist.Data.DTO;
+using mytodolist.Hypermedia.Filters;
 using System.Collections.Generic;
 
 namespace mytodolist.Controllers
 {
     [ApiVersion("1")]
     [ApiController]
-    [Route("v{version:apiVersion}/api/Tarefa")]
+    [Route("v{version:apiVersion}/api/tarefa")]
     public class TarefaController : ControllerBase
     {
 
         private readonly ILogger<TarefaController> _logger;
+        private ITarefaBusiness _TarefaBusiness;
 
         public TarefaController(ILogger<TarefaController> logger, ITarefaBusiness TarefaBusiness)
         {
@@ -20,7 +23,7 @@ namespace mytodolist.Controllers
         }
 
         [HttpGet]
-        [ProducesResponseType(200, Type = typeof(List<ListaTarefaDTO>))]
+        [ProducesResponseType(200, Type = typeof(List<TarefaDTO>))]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
@@ -31,7 +34,7 @@ namespace mytodolist.Controllers
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(200, Type = typeof(ListaTarefaDTO))]
+        [ProducesResponseType(200, Type = typeof(TarefaDTO))]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
@@ -46,50 +49,38 @@ namespace mytodolist.Controllers
         }
 
 
-        [HttpGet("{sortDirection}/{pageSize}/{currentPage}")]
-        [ProducesResponseType(200, Type = typeof(PagedSearchVO<ListaTarefaDTO>))]
-        [ProducesResponseType(204)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(401)]
-        [TypeFilter(typeof(HyperMediaFilter))]
-        public IActionResult FindByPagedSearch([FromQuery] string name, string sortDirection, int pageSize, int currentPage)
-        {
-            return Ok(_TarefaBusiness.FindWithPagedSearch(name, sortDirection, pageSize, currentPage));
-        }
-
         [HttpPost()]
-        [ProducesResponseType(200, Type = typeof(ListaTarefaDTO))]
+        [ProducesResponseType(200, Type = typeof(TarefaDTO))]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [TypeFilter(typeof(HyperMediaFilter))]
-        public IActionResult CreateTarefa([FromBody] ListaTarefaDTO Tarefa)
+        public IActionResult CreateTarefa([FromBody] TarefaDTO tarefa)
         {
-            if (Tarefa == null) return NotFound();
+            if (tarefa == null) return NotFound();
 
-            return Ok(_TarefaBusiness.Create(Tarefa));
+            return Ok(_TarefaBusiness.Create(tarefa));
         }
 
         [HttpPut()]
-        [ProducesResponseType(200, Type = typeof(ListaTarefaDTO))]
+        [ProducesResponseType(200, Type = typeof(TarefaDTO))]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [TypeFilter(typeof(HyperMediaFilter))]
-        public IActionResult UpdateTarefa([FromBody] ListaTarefaDTO Tarefa)
+        public IActionResult UpdateTarefa([FromBody] TarefaDTO tarefa)
         {
-            if (Tarefa == null) return NotFound();
+            if (tarefa == null) return NotFound();
 
-            return Ok(_TarefaBusiness.Update(Tarefa));
+            return Ok(_TarefaBusiness.Update(tarefa));
         }
 
         [HttpPatch("{id}")]
-        [ProducesResponseType(200, Type = typeof(List<ListaTarefaDTO>))]
+        [ProducesResponseType(200, Type = typeof(List<TarefaDTO>))]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
-        [TypeFilter(typeof(HyperMediaFilter))]
         public IActionResult ActiveTarefa(long id)
         {
-            return Ok(_TarefaBusiness.ActiveUser(id));
+            return Ok(_TarefaBusiness.AtivarTarefa(id));
         }
 
         [HttpDelete("{id}")]

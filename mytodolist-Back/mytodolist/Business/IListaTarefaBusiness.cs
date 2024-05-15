@@ -11,8 +11,6 @@ namespace mytodolist.Business
 
         ListaTarefaDTO Update(ListaTarefaDTO personVO);
 
-        ListaTarefaDTO AtivarListaTarefa(long id);
-
         void Delete(long id);
     }
 }

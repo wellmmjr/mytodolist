@@ -1,5 +1,6 @@
 ﻿using mytodolist.Data.DTO;
 using mytodolist.Data.Converter.Implementation;
+using mytodolist.Repository.ListaTarefas;
 
 namespace mytodolist.Business.Implementation
 {
@@ -12,13 +13,6 @@ namespace mytodolist.Business.Implementation
         {
             _repository = repository;
             _converter = new ListaTarefaConverter();
-        }
-
-        public ListaTarefaDTO AtivarTarefa(long id)
-        {
-            var listaTarefa = _repository.AtivarTarefa(id);
-
-            return _converter.Parse(listaTarefa);
         }
 
         public ListaTarefaDTO Create(ListaTarefaDTO listaTarefaDTO)
@@ -43,16 +37,11 @@ namespace mytodolist.Business.Implementation
         public ListaTarefaDTO FindById(long id)
         {
             return _converter.Parse(_repository.FindById(id));
-        }
+        }    
 
-        public List<ListaTarefaDTO> FindByName(string firstName, string secondName)
+        public ListaTarefaDTO Update(ListaTarefaDTO listaTarefaDTO)
         {
-            return _converter.Parse(_repository.FindByName(firstName, secondName));
-        }       
-
-        public ListaTarefaDTO Update(ListaTarefaDTO ListaTarefaDTO)
-        {
-            var listaTarefa = _converter.Parse(ListaTarefaDTO);
+            var listaTarefa = _converter.Parse(listaTarefaDTO);
             _repository.Update(listaTarefa);
 
             return _converter.Parse(listaTarefa);
